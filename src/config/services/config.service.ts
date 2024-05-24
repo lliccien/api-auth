@@ -11,8 +11,12 @@ export interface EnvConfig {
 export class ConfigService {
   private readonly envConfig: EnvConfig;
 
-  constructor(filePath: string) {
-    const config = dotenv.parse(fs.readFileSync(filePath));
+  constructor() {
+    const envFilePath = '.env';
+    const config = fs.existsSync(envFilePath)
+      ? dotenv.parse(fs.readFileSync(envFilePath))
+      : process.env;
+
     this.envConfig = this.validateInput(config);
   }
 
@@ -22,11 +26,13 @@ export class ConfigService {
 
   private validateInput(envConfig: EnvConfig): EnvConfig {
     const envVarsSchema: Joi.ObjectSchema = Joi.object({
-      NODE_ENV: Joi.string().valid('development', 'production', 'test'),
-      PORT: Joi.number().required(),
-      JWT_SECRET: Joi.string().required(),
-      JWT_EXPIRES_IN: Joi.string().required(),
-    });
+      NODE_ENV: Joi.string()
+        .valid('development', 'production', 'test')
+        .default('production'),
+      PORT: Joi.number().default(3000),
+      JWT_SECRET: Joi.string().default('secrect_api-auth'),
+      JWT_EXPIRES_IN: Joi.string().default('1d'),
+    }).unknown(true);
 
     const { error, value: validatedEnvConfig } =
       envVarsSchema.validate(envConfig);
